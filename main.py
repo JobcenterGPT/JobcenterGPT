@@ -2,29 +2,30 @@ import os
 import telebot
 from flask import Flask, request
 
-TOKEN = os.getenv("BOT_TOKEN")  # берем токен из переменных окружения Render
+TOKEN = os.environ.get('BOT_TOKEN')  # Render переменная
 bot = telebot.TeleBot(TOKEN)
-
 app = Flask(__name__)
 
-# Простой обработчик /start
+# Ответ на команду /start
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
-    bot.reply_to(message, "Привет! Я JobcenterGPT 🤖. Бот запущен и работает!")
+    bot.send_message(message.chat.id, "Привет! Я бот JobcenterGPT.")
 
-# Flask endpoint для Telegram Webhook
-@app.route('/' + TOKEN, methods=['POST'])
-def getMessage():
-    json_str = request.stream.read().decode('UTF-8')
+# Webhook для Telegram
+@app.route(f'/{TOKEN}', methods=['POST'])
+def webhook():
+    json_str = request.get_data().decode('utf-8')
     update = telebot.types.Update.de_json(json_str)
     bot.process_new_updates([update])
-    return "!", 200
+    return '', 200
 
-@app.route("/")
-def webhook():
-    bot.remove_webhook()
-    bot.set_webhook(url="https://" + os.getenv("RENDER_EXTERNAL_HOSTNAME") + "/" + TOKEN)
-    return "Webhook set", 200
+# Главная страница для проверки
+@app.route('/')
+def index():
+    return "Бот работает!"
 
+# Установка Webhook при запуске
 if __name__ == "__main__":
+    bot.remove_webhook()
+    bot.set_webhook(url=f"https://jobcentergpt.onrender.com/{TOKEN}")
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
