@@ -39,6 +39,25 @@ def webhook():
 
     if text.startswith("/start"):
         tg_send(chat_id, "Привет! Я бот JobcenterGPT. Я на связи 🚀")
+
+    elif text.startswith("/translate"):
+        # Убираем команду и берём только текст
+        phrase = text.replace("/translate", "").strip()
+        if not phrase:
+            tg_send(chat_id, "Отправь фразу после команды /translate, например:\n/translate Hallo, wie geht es dir?")
+        else:
+            try:
+                from openai import OpenAI
+                client = OpenAI()
+                completion = client.responses.create(
+                    model="gpt-4o-mini",
+                    input=f"Переведи это естественно на противоположный язык (русский или немецкий): {phrase}"
+                )
+                translated = completion.output[0].content[0].text
+                tg_send(chat_id, f"Перевод:\n{translated}")
+            except Exception as e:
+                tg_send(chat_id, f"Ошибка перевода: {e}")
+
     else:
         tg_send(chat_id, f"Эхо: {text}")
 
