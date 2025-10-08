@@ -38,28 +38,39 @@ def webhook():
     text = (msg.get("text") or "").strip()
 
     if text.startswith("/start"):
-        tg_send(chat_id, "Привет! Я бот JobcenterGPT. Я на связи 🚀")
+    tg_send(chat_id, "Привет! Я бот JobcenterGPT. Я на связи 🚀")
 
-    elif text.startswith("/translate"):
-        # Убираем команду и берём только текст
-        phrase = text.replace("/translate", "").strip()
-        if not phrase:
-            tg_send(chat_id, "Отправь фразу после команды /translate, например:\n/translate Hallo, wie geht es dir?")
-        else:
-            try:
-                from openai import OpenAI
-                client = OpenAI()
-                completion = client.responses.create(
-                    model="gpt-4o-mini",
-                    input=f"Переведи это естественно на противоположный язык (русский или немецкий): {phrase}"
-                )
-                translated = completion.output[0].content[0].text
-                tg_send(chat_id, f"Перевод:\n{translated}")
-            except Exception as e:
-                tg_send(chat_id, f"Ошибка перевода: {e}")
-
+elif text.startswith("/translate"):
+    phrase = text.replace("/translate", "").strip()
+    if not phrase:
+        tg_send(chat_id, "Отправь фразу после команды /translate, например:\n/translate Hallo, wie geht es dir?")
     else:
-        tg_send(chat_id, f"Эхо: {text}")
+        import requests
+        import json
+
+        # Твой OpenAI API ключ
+        OPENAI_API_KEY = "sk-ВСТАВЬ_СВОЙ_КЛЮЧ_ОТСЮДА_https://platform.openai.com/api-keys"
+
+        headers = {
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {OPENAI_API_KEY}"
+        }
+
+        data = {
+            "model": "gpt-4o-mini",
+            "input": f"Переведи это естественно на противоположный язык (русский или немецкий): {phrase}"
+        }
+
+        response = requests.post("https://api.openai.com/v1/responses", headers=headers, json=data)
+        if response.status_code == 200:
+            result = response.json()
+            translated = result["output"][0]["content"][0]["text"]
+            tg_send(chat_id, f"Перевод:\n{translated}")
+        else:
+            tg_send(chat_id, f"Ошибка перевода ({response.status_code}): {response.text}")
+
+else:
+    tg_send(chat_id, f"Эхо: {text}")
 
     return "ok", 200
 
