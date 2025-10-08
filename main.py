@@ -1,78 +1,48 @@
-import os
-import json
+import telebot
 from flask import Flask, request
-from urllib.request import Request, urlopen
+from openai import OpenAI
+import os
 
-# Токен берём из переменной окружения BOT_TOKEN (как сейчас у тебя на Render).
-TOKEN = os.environ.get("BOT_TOKEN")
+# === Настройки ===
+TOKEN = "8249445313:AAFeexd7eIcE5rc8ZypgpLa_emZy_sGRfSo"
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY") or "вставь_сюда_свой_openai_api_ключ"
 
+bot = telebot.TeleBot(TOKEN)
 app = Flask(__name__)
 
-@app.route("/", methods=["GET"])
-def health():
-    return "Бот JobcenterGPT работает ✅", 200
+client = OpenAI(api_key=OPENAI_API_KEY)
 
-def tg_send(chat_id: int, text: str):
-    """Прямой вызов Telegram API без сторонних библиотек."""
-    url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
-    payload = {"chat_id": chat_id, "text": text}
-    data = json.dumps(payload).encode("utf-8")
-    req = Request(url, data=data, headers={"Content-Type": "application/json"})
-    urlopen(req)  # если будет ошибка — увидим её в логах Render
+# === Основная страница ===
+@app.route('/')
+def index():
+    return '✅ Бот JobcenterGPT запущен и ждёт сообщения!'
 
-@app.route(f"/{os.environ.get('BOT_TOKEN')}", methods=["POST"])
+# === Webhook ===
+@app.route(f'/{TOKEN}', methods=['POST'])
 def webhook():
-    update = request.get_json(silent=True) or {}
-    # чтобы видеть, что реально прилетает от Telegram:
-    print("UPDATE:", json.dumps(update, ensure_ascii=False))
+    json_str = request.get_data(as_text=True)
+    update = telebot.types.Update.de_json(json_str)
+    bot.process_new_updates([update])
+    return '', 200
 
-    msg = (
-        update.get("message")
-        or update.get("edited_message")
-        or (update.get("callback_query") or {}).get("message")
-    )
-    if not msg:
-        return "ok", 200
-
-    chat_id = msg["chat"]["id"]
-    text = (msg.get("text") or "").strip()
-
-    if text.startswith("/start"):
-    tg_send(chat_id, "Привет! Я бот JobcenterGPT. Я на связи 🚀")
-
-elif text.startswith("/translate"):
-    phrase = text.replace("/translate", "").strip()
-    if not phrase:
-        tg_send(chat_id, "Отправь фразу после команды /translate, например:\n/translate Hallo, wie geht es dir?")
-    else:
-        import requests
-        import json
-
-        # Твой OpenAI API ключ
-        OPENAI_API_KEY = "sk-ВСТАВЬ_СВОЙ_КЛЮЧ_ОТСЮДА_https://platform.openai.com/api-keys"
-
-        headers = {
-            "Content-Type": "application/json",
-            "Authorization": f"Bearer {OPENAI_API_KEY}"
-        }
-
-        data = {
-            "model": "gpt-4o-mini",
-            "input": f"Переведи это естественно на противоположный язык (русский или немецкий): {phrase}"
-        }
-
-        response = requests.post("https://api.openai.com/v1/responses", headers=headers, json=data)
-        if response.status_code == 200:
-            result = response.json()
-            translated = result["output"][0]["content"][0]["text"]
-            tg_send(chat_id, f"Перевод:\n{translated}")
-        else:
-            tg_send(chat_id, f"Ошибка перевода ({response.status_code}): {response.text}")
-
-else:
-    tg_send(chat_id, f"Эхо: {text}")
-
-    return "ok", 200
+# === Обработка сообщений ===
+@bot.message_handler(func=lambda message: True)
+def handle_message(message):
+    try:
+        text = message.text
+        completion = client.chat.completions.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                {"role": "system", "content": "Ты переводчик. Переводи все сообщения пользователя на немецкий язык."},
+                {"role": "user", "content": text}
+            ]
+        )
+        translated = completion.choices[0].message.content
+        bot.reply_to(message, translated)
+    except Exception as e:
+        bot.reply_to(message, f"Ошибка: {e}")
 
 if __name__ == "__main__":
+    bot.remove_webhook()
+    bot.set_webhook(url=f"https://jobcentergpt.onrender.com/{TOKEN}")
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
