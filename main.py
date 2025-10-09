@@ -65,6 +65,12 @@ def handle_message(message):
     except Exception as e:
         bot.reply_to(message, f"Ошибка перевода: {e}")
 
+@app.route(f'/{TOKEN}', methods=['POST'])
+def webhook_handler():
+    json_str = request.get_data(as_text=True)
+    update = telebot.types.Update.de_json(json_str)
+    bot.process_new_updates([update])
+    return '', 200
 # === Запуск ===
 if __name__ == '__main__':
     bot.remove_webhook()
