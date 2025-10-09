@@ -16,12 +16,15 @@ def index():
     return '✅ Бот JobcenterGPT запущен и ждёт сообщений!'
 
 # === Webhook ===
-@app.route(f'/{TOKEN}', methods=['POST'])
+@app.route('/', methods=['POST', 'GET'])
 def webhook():
-    json_str = request.get_data(as_text=True)
-    update = telebot.types.Update.de_json(json_str)
-    bot.process_new_updates([update])
-    return '', 200
+    if request.method == 'POST':
+        json_str = request.get_data(as_text=True)
+        update = telebot.types.Update.de_json(json_str)
+        bot.process_new_updates([update])
+        return '', 200
+    else:
+        return 'Bot is running!', 200
 @bot.message_handler(commands=['translate'])
 def translate_message(message):
     try:
