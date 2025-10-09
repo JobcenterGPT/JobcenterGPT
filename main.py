@@ -46,14 +46,16 @@ def handle_message(message):
     try:
         text = message.text
         response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
-            messages=[
-                {"role": "system", "content": "Ты переводчик. Переводи текст пользователя с английского на немецкий язык."},
-                {"role": "user", "content": text}
-            ]
-        )
-        translated = response.choices[0].message["content"]
-        bot.reply_to(message, translated)
+    model="gpt-3.5-turbo",
+    messages=[
+        {"role": "system", "content": "Ты переводчик. Переводи текст на немецкий язык."},
+        {"role": "user", "content": text}
+    ]
+)
+
+print("Received:", text)  # 👉 эта строка просто покажет входящее сообщение в логах Render
+translated = response.choices[0].message.content.strip()  # 👉 здесь точка, не скобки
+bot.reply_to(message, translated)
     except Exception as e:
         bot.reply_to(message, f"Ошибка перевода: {e}")
 
