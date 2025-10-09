@@ -1,63 +1,57 @@
 import os
-import telebot
 from flask import Flask, request
-from openai import OpenAI
+import requests
 
-# === Настройки из переменных окружения ===
-TOKEN = os.getenv("BOT_TOKEN")
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-
-bot = telebot.TeleBot(TOKEN)
 app = Flask(__name__)
-client = OpenAI(api_key=OPENAI_API_KEY)
 
-# === Статусная страница ===
-@app.route("/")
-def index():
-    return "✅ Бот JobcenterGPT запущен и ждёт сообщений!", 200
+# === НАСТРОЙКИ ===
+TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN") or "ТВОЙ_ТОКЕН_ОТСЮДА_fatherbot"
+TELEGRAM_API_URL = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}"
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY") or "ТВОЙ_API_КЛЮЧ_OPENAI"  # если используешь OpenAI
 
-# === Вебхук: слушаем КОРЕНЬ '/' ===
+# === ОБРАБОТЧИК ГЛАВНОГО ВЕБХУКА ===
 @app.route("/", methods=["POST"])
 def webhook():
-    # Telegram шлёт JSON
-    if request.headers.get("content-type") != "application/json":
-        return "Unsupported Media Type", 415
+    update = request.get_json()
+    print("Received update:", update)  # лог для Render
 
-    json_str = request.get_data(as_text=True)
-    update = telebot.types.Update.de_json(json_str)
-    print("Received update")  # будет видно в логах Render
-    bot.process_new_updates([update])
-    return "", 200
+    if "message" in update and "text" in update["message"]:
+        chat_id = update["message"]["chat"]["id"]
+        text = update["message"]["text"]
 
-# === Команды ===
-@bot.message_handler(commands=["start"])
-def start(message):
-    bot.reply_to(message, "Привет! Пиши: /translate <текст на английском> — переведу на немецкий 🇩🇪")
+        # === ПРОСТОЙ ПЕРЕВОД АНГЛИЙСКИЙ -> РУССКИЙ ===
+        if text.startswith("/translate"):
+            original_text = text.replace("/translate", "").strip()
+            translated_text = translate_text(original_text)
+            send_message(chat_id, translated_text)
+        else:
+            send_message(chat_id, "Отправь команду /translate <текст> для перевода.")
+    return "ok", 200  # обязательно
 
-@bot.message_handler(commands=["translate"])
-def translate_message(message):
+# === ФУНКЦИЯ ОТПРАВКИ СООБЩЕНИЯ В ТЕЛЕГРАМ ===
+def send_message(chat_id, text):
+    url = f"{TELEGRAM_API_URL}/sendMessage"
+    payload = {"chat_id": chat_id, "text": text}
+    requests.post(url, json=payload)
+
+# === ФУНКЦИЯ ПЕРЕВОДА ===
+def translate_text(text):
     try:
-        text = message.text.replace("/translate", "", 1).strip()
-        if not text:
-            bot.reply_to(message, "Добавь текст после /translate, например: /translate Hello world")
-            return
-
-        # OpenAI v2.x
-        response = client.chat.completions.create(
-            model="gpt-3.5-turbo",
-            messages=[
-                {"role": "system", "content": "Ты переводчик. Всегда переводи на немецкий язык."},
-                {"role": "user", "content": text},
-            ],
-        )
-        translated = response.choices[0].message.content.strip()
-        bot.reply_to(message, translated)
+        url = "https://api.mymemory.translated.net/get"
+        params = {"q": text, "langpair": "en|ru"}
+        response = requests.get(url, params=params)
+        data = response.json()
+        return data["responseData"]["translatedText"]
     except Exception as e:
-        bot.reply_to(message, f"Ошибка перевода: {e}")
+        print("Translation error:", e)
+        return "Ошибка перевода."
 
-# === Запуск ===
+# === ПРОСТОЙ ГЕТ МАРШРУТ ДЛЯ ПРОВЕРКИ ===
+@app.route("/", methods=["GET"])
+def index():
+    return "JobcenterGPT is active ✅", 200
+
+# === ЗАПУСК ===
 if __name__ == "__main__":
-    bot.remove_webhook()
-    # ВАЖНО: вебхук на корень '/', без токена в пути
-    bot.set_webhook(url="https://jobcentergpt.onrender.com/")
-    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host="0.0.0.0", port=port)
