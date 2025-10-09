@@ -10,18 +10,23 @@ openai.api_key = os.getenv("OPENAI_API_KEY")
 bot = telebot.TeleBot(TOKEN)
 app = Flask(__name__)
 
-# === Основная страница ===
+# === Главная страница ===
 @app.route('/')
 def index():
-    return '✅ Бот JobcenterGPT запущен и ждёт сообщений!'
+    return '✅ JobcenterGPT работает и ждёт сообщений!'
 
-# === Webhook ===
+# === Маршрут для приёма данных от Telegram ===
 @app.route(f'/{TOKEN}', methods=['POST'])
-def webhook():
+def receive_update():
     json_str = request.get_data(as_text=True)
     update = telebot.types.Update.de_json(json_str)
     bot.process_new_updates([update])
     return '', 200
+
+# === Команда /start ===
+@bot.message_handler(commands=['start'])
+def start_message(message):
+    bot.reply_to(message, "Привет! Отправь команду /translate <текст>, и я переведу с английского на немецкий 🇩🇪")
 
 # === Команда /translate ===
 @bot.message_handler(commands=['translate'])
@@ -40,9 +45,11 @@ def translate_message(message):
 
         translated = response.choices[0].message.content.strip()
         bot.reply_to(message, translated)
+        print("Translated:", translated)
 
     except Exception as e:
-        bot.reply_to(message, f"Ошибка перевода: {e}")
+        print("Ошибка:", e)
+        bot.reply_to(message, f"⚠️ Ошибка перевода: {e}")
 
 # === Обработка всех остальных сообщений ===
 @bot.message_handler(func=lambda message: True)
@@ -61,16 +68,12 @@ def handle_message(message):
 
         translated = response.choices[0].message.content.strip()
         bot.reply_to(message, translated)
+        print("Translated:", translated)
 
     except Exception as e:
-        bot.reply_to(message, f"Ошибка перевода: {e}")
+        print("Ошибка:", e)
+        bot.reply_to(message, f"⚠️ Ошибка: {e}")
 
-@app.route(f'/{TOKEN}', methods=['POST'])
-def webhook_handler():
-    json_str = request.get_data(as_text=True)
-    update = telebot.types.Update.de_json(json_str)
-    bot.process_new_updates([update])
-    return '', 200
 # === Запуск ===
 if __name__ == '__main__':
     bot.remove_webhook()
