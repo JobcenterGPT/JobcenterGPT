@@ -16,53 +16,56 @@ def index():
     return '✅ Бот JobcenterGPT запущен и ждёт сообщений!'
 
 # === Webhook ===
-@app.route('/', methods=['POST', 'GET'])
+@app.route(f'/{TOKEN}', methods=['POST'])
 def webhook():
-    if request.method == 'POST':
-        json_str = request.get_data(as_text=True)
-        update = telebot.types.Update.de_json(json_str)
-        bot.process_new_updates([update])
-        return '', 200
-    else:
-        return 'Bot is running!', 200
+    json_str = request.get_data(as_text=True)
+    update = telebot.types.Update.de_json(json_str)
+    bot.process_new_updates([update])
+    return '', 200
+
+# === Команда /translate ===
 @bot.message_handler(commands=['translate'])
 def translate_message(message):
     try:
-    text = message.text
-    print("Received:", text)  # эта строка должна быть с тем же отступом, что и text = message.text
+        text = message.text.replace('/translate', '').strip()
+        print("Received:", text)
 
-    response = openai.ChatCompletion.create(
-        model="gpt-3.5-turbo",
-        messages=[
-            {"role": "system", "content": "Ты переводчик. Переводи текст на немецкий язык."},
-            {"role": "user", "content": text}
-        ]
-    )
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                {"role": "system", "content": "Ты переводчик. Переводи текст с английского на немецкий."},
+                {"role": "user", "content": text}
+            ]
+        )
 
-    translated = response.choices[0].message.content.strip()
-    bot.reply_to(message, translated)
+        translated = response.choices[0].message.content.strip()
+        bot.reply_to(message, translated)
 
-except Exception as e:
-    bot.reply_to(message, f"Ошибка перевода: {e}")
-# === Обработка сообщений ===
+    except Exception as e:
+        bot.reply_to(message, f"Ошибка перевода: {e}")
+
+# === Обработка всех остальных сообщений ===
 @bot.message_handler(func=lambda message: True)
 def handle_message(message):
     try:
         text = message.text
-        response = openai.ChatCompletion.create(
-    model="gpt-3.5-turbo",
-    messages=[
-        {"role": "system", "content": "Ты переводчик. Переводи текст на немецкий язык."},
-        {"role": "user", "content": text}
-    ]
-)
+        print("Received:", text)
 
-print("Received:", text)  # 👉 эта строка просто покажет входящее сообщение в логах Render
-translated = response.choices[0].message.content.strip()  # 👉 здесь точка, не скобки
-bot.reply_to(message, translated)
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                {"role": "system", "content": "Ты переводчик. Переводи текст с английского на немецкий."},
+                {"role": "user", "content": text}
+            ]
+        )
+
+        translated = response.choices[0].message.content.strip()
+        bot.reply_to(message, translated)
+
     except Exception as e:
         bot.reply_to(message, f"Ошибка перевода: {e}")
 
+# === Запуск ===
 if __name__ == '__main__':
     bot.remove_webhook()
     bot.set_webhook(url=f'https://jobcentergpt.onrender.com/{TOKEN}')
