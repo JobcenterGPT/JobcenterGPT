@@ -28,18 +28,22 @@ def webhook():
 @bot.message_handler(commands=['translate'])
 def translate_message(message):
     try:
-        text = message.text.replace('/translate', '').strip()
-        completion = client.chat.completions.create(
-            model="gpt-3.5-turbo",
-            messages=[
-                {"role": "system", "content": "Ты переводчик. Переводи текст с английского на русский."},
-                {"role": "user", "content": text}
-            ]
-        )
-        translated = completion.choices[0].message.content
-        bot.reply_to(message, translated)
-    except Exception as e:
-        bot.reply_to(message, f"Ошибка перевода: {e}")
+    text = message.text
+    print("Received:", text)  # эта строка должна быть с тем же отступом, что и text = message.text
+
+    response = openai.ChatCompletion.create(
+        model="gpt-3.5-turbo",
+        messages=[
+            {"role": "system", "content": "Ты переводчик. Переводи текст на немецкий язык."},
+            {"role": "user", "content": text}
+        ]
+    )
+
+    translated = response.choices[0].message.content.strip()
+    bot.reply_to(message, translated)
+
+except Exception as e:
+    bot.reply_to(message, f"Ошибка перевода: {e}")
 # === Обработка сообщений ===
 @bot.message_handler(func=lambda message: True)
 def handle_message(message):
