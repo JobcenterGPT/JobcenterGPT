@@ -22,7 +22,21 @@ def webhook():
     update = telebot.types.Update.de_json(json_str)
     bot.process_new_updates([update])
     return '', 200
-
+@bot.message_handler(commands=['translate'])
+def translate_message(message):
+    try:
+        text = message.text.replace('/translate', '').strip()
+        completion = client.chat.completions.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                {"role": "system", "content": "Ты переводчик. Переводи текст с английского на русский."},
+                {"role": "user", "content": text}
+            ]
+        )
+        translated = completion.choices[0].message.content
+        bot.reply_to(message, translated)
+    except Exception as e:
+        bot.reply_to(message, f"Ошибка перевода: {e}")
 # === Обработка сообщений ===
 @bot.message_handler(func=lambda message: True)
 def handle_message(message):
