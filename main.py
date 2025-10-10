@@ -32,7 +32,8 @@ def webhook():
 def send_message(chat_id, text):
     url = f"{TELEGRAM_API_URL}/sendMessage"
     payload = {"chat_id": chat_id, "text": text}
-    requests.post(url, json=payload)
+    response = requests.post(url, json=payload)
+    print("TELEGRAM RESPONSE:", response.status_code, response.text)  # добавили лог
 
 # === ФУНКЦИЯ ПЕРЕВОДА ===
 def translate_text(text):
