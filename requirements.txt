@@ -2,3 +2,4 @@ flask
 gunicorn
 pyTelegramBotAPI
 openai
+python-dotenv
