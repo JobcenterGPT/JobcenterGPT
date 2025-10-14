@@ -31,6 +31,7 @@ def webhook():
     if "message" in data and "text" in data["message"]:
         chat_id = data["message"]["chat"]["id"]
         text = data["message"]["text"]
+        print(f"🔵 Chat ID: {chat_id}")
 
         if text.startswith("/translate"):
             original_text = text.replace("/translate", "").strip()
