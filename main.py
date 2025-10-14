@@ -1,54 +1,42 @@
+import os
 import requests
-import json
 from flask import Flask, request
 
 app = Flask(__name__)
 
-# 🔵 ТВОЙ TELEGRAM БОТ ТОКЕН 🔵
-TOKEN = "🔵8249445313:AAFeexd7eIcE5rc8ZypgpLa_emZy_sGRfSo🔵"
-TELEGRAM_API_URL = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
+TELEGRAM_TOKEN = "8249445313:AAFeexd7eIcE5rc8ZypgpLa_emZy_sGRfSo"
+CHAT_ID = "5556229951"
+API_URL = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
 
-# ПЕРЕВОДЧИК
-def translate_text(text):
-    url = "https://translate.argosopentech.com/translate"
-    payload = {
-        "q": text,
-        "source": "en",
-        "target": "ru",
-        "format": "text"
-    }
-    headers = {"Content-Type": "application/json"}
-    response = requests.post(url, data=json.dumps(payload), headers=headers)
-    if response.status_code == 200:
-        return response.json().get("translatedText")
-    return "Ошибка перевода"
-
-# ПРИЁМ СООБЩЕНИЙ
 @app.route("/", methods=["POST"])
 def webhook():
     data = request.get_json()
+    message = data.get("message", {})
+    text = message.get("text", "")
 
-    if "message" in data and "text" in data["message"]:
-        chat_id = data["message"]["chat"]["id"]
-        text = data["message"]["text"]
-        print(f"🔵 Chat ID: {chat_id}")
-
-        if text.startswith("/translate"):
-            original_text = text.replace("/translate", "").strip()
-            translated = translate_text(original_text)
-            send_message(chat_id, translated)
+    if text.startswith("/translate"):
+        parts = text.split(maxsplit=1)
+        if len(parts) == 2:
+            phrase = parts[1]
+            # Простой "перевод": просто меняет язык местами
+            translation = fake_translate(phrase)
+            send_message(translation)
         else:
-            send_message(chat_id, "Напиши команду /translate и текст на английском.")
-    
-    return "ok", 200
+            send_message("Пожалуйста, введите фразу после команды /translate.")
+    else:
+        send_message("Привет! Напиши /translate [текст], и я переведу его.")
 
-# ОТПРАВКА СООБЩЕНИЯ
-def send_message(chat_id, text):
-    payload = {
-        "chat_id": chat_id,
+    return {"ok": True}
+
+def send_message(text):
+    requests.post(API_URL, json={
+        "chat_id": CHAT_ID,
         "text": text
-    }
-    requests.post(TELEGRAM_API_URL, json=payload)
+    })
+
+def fake_translate(phrase):
+    # Заглушка — можно подключить ChatGPT, DeepL или Google API
+    return f"Перевод: {phrase[::-1]}"  # просто переворачивает текст
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=10000)
+    app.run()
