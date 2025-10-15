@@ -1,10 +1,13 @@
 import os
 import requests
 from flask import Flask, request
+from dotenv import load_dotenv  # 🆕
+
+load_dotenv()  # 🆕
 
 app = Flask(__name__)
 
-TELEGRAM_TOKEN = "8249445313:AAFeexd7eIcE5rc8ZypgpLa_emZy_sGRfSo"
+TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")  # 🆕
 API_URL = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
 
 @app.route("/", methods=["POST"])
