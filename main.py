@@ -19,9 +19,17 @@ def webhook():
 
     if text.startswith("/translate"):
         parts = text.split(maxsplit=1)
-        if len(parts) == 2:
-            phrase = parts[1]
-            translation = fake_translate(phrase)
+        import openai
+        openai.api_key = os.getenv("OPENAI_API_KEY")
+
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                {"role": "system", "content": "Ты профессиональный переводчик. Переводи точно и грамотно."},
+                {"role": "user", "content": f"Переведи на немецкий: {phrase}"}
+            ]
+        )
+        translation = response.choices[0].message["content"].strip()
             send_message(chat_id, translation)
         else:
             send_message(chat_id, "Пожалуйста, введите фразу после команды /translate")
