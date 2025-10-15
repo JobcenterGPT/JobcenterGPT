@@ -35,8 +35,7 @@ def webhook():
             send_message(chat_id, "Пожалуйста, введите фразу после команды /translate")
     else:
         send_message(chat_id, "Привет! Напиши /translate [текст], и я переведу его.")
-
-    return {"ok": True}
+        return {"ok": True}
 
 def send_message(chat_id, text):
     requests.post(API_URL, json={
