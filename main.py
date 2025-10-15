@@ -36,7 +36,8 @@ def webhook():
     try:
         message = data.get("message")
 if not message:
-    return "no message"
+    print("no message")
+    return "ok"
         text = message.get("text", "")
         chat_id = message["chat"]["id"]
 
