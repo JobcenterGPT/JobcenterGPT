@@ -1,4 +1,4 @@
-import os
+rimport os
 import requests
 from flask import Flask, request
 from openai import OpenAI
@@ -30,7 +30,7 @@ def translate_text(text):
     except Exception as e:
         return f"Ошибка при обращении к OpenAI: {e}"
 
-@app.route("/", methods=["POST"])
+@app.route("/webhook", methods=["POST"])
 def webhook():
     data = request.get_json()
     try:
