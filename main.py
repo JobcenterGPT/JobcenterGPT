@@ -1,5 +1,6 @@
 import os
 import requests
+import openai
 from flask import Flask, request
 from dotenv import load_dotenv  # 🆕
 
@@ -19,7 +20,6 @@ def webhook():
 
     if text.startswith("/translate"):
         parts = text.split(maxsplit=1)
-        import openai
         openai.api_key = os.getenv("OPENAI_API_KEY")
 
         response = openai.ChatCompletion.create(
