@@ -34,7 +34,9 @@ def translate_text(text):
 def webhook():
     data = request.get_json()
     try:
-        message = data["message"]
+        message = data.get("message")
+if not message:
+    return "no message"
         text = message.get("text", "")
         chat_id = message["chat"]["id"]
 
