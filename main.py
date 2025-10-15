@@ -44,8 +44,6 @@ def send_message(chat_id, text):
         "text": text
     })
 
-def fake_translate(phrase):
-    return phrase[::-1]  # просто переворачивает текст
 
 if __name__ == "__main__":
     app.run()
